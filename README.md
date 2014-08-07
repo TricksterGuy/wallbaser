@@ -10,9 +10,9 @@ Every 5 minutes (configurable) wallbaser automatically choses to change the wall
 
 A **single left** mouse click sets the timer to 5 seconds so it can be thought of as a "next" action
 
-A **double left** mouse click sets the timer to 5 seconds but also weights the chance of re-using an old wallpaper to 100%
+A **double left** mouse click sets the timer to 5 seconds but also weighs the chance of re-using an old wallpaper to 100%
 
-A **single middle** mouse click removes the current wallpaper and sets the timer to 5 seconds (usefull when Wallbaser downloads a wallpaper you don't like)
+A **single middle** mouse click removes the current wallpaper and sets the timer to 5 seconds (useful when Wallbaser downloads a wallpaper you don't like)
 
 A **single right** mouse click pauses the timer (useful if you like the current wallpaper or simply don't want it to change)
 
@@ -21,6 +21,11 @@ With Python 2.7+ installed, simply download the two required files:
 
 * changeWallpaper.py
 * wallbaser.py
+
+In addition ensure the following modules are downloaded
+* wx
+* PIL
+* requests
 
 Once downloaded, place open wallbaser.py in your favorite notepad program and customize the code to fit your system. The parameters that have to be changed are
 

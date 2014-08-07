@@ -1,4 +1,5 @@
-import wx, requests, re, ctypes, subprocess, os, Image, random, time, sys
+import wx, requests, re, ctypes, subprocess, os, random, time, sys
+from PIL import Image
 
 class Wallbaser(wx.Frame):
     #############################
@@ -29,7 +30,7 @@ class Wallbaser(wx.Frame):
     wallpaperFilename = ""
     # The prefix is the first string in the bar. This is updated with the current countdown time 
     txtPrefix = ""
-    # The main string explains the current statue of the downloadr
+    # The main string explains the current state of the downloader
     txtMain = ""
     # The suffix comes at the end and is customizable.
     txtSuffix = "Wallbaser - Wallpaper Changer by Harrison Jones"
@@ -38,7 +39,7 @@ class Wallbaser(wx.Frame):
     # Placeholder text to explain why the countdown is paused
     pausedReason = "Default Paused Reason"
 
-    ## wxFrame Initaliation
+    ## wxFrame Initalization
     def __init__(self, parent, title):
         # Define the info bar. No border, no taskbar, and always on top so we can always click on it
         wx.Frame.__init__(self, parent, -1, "Shaped Window",size=(500,500),
@@ -64,7 +65,7 @@ class Wallbaser(wx.Frame):
         # Bind some mouse events to the functions they perform when clicks
         # Left mouse click changes the wallpaper soon (within a few seconds)
         self.Bind(wx.EVT_LEFT_UP,       self.ChangeWallpaperSoon)
-        # Left mouse double click sets the chance of the next wallpaper being a random from the chace to 100% and changes the wallpaper soon
+        # Left mouse double click sets the chance of the next wallpaper being a random from the chance to 100% and changes the wallpaper soon
         self.Bind(wx.EVT_LEFT_DCLICK,   self.RandomWallpaper)
         # A middle mouse click removes the current wallpaper and changes the wallpaper soon
         self.Bind(wx.EVT_MIDDLE_UP,  self.RemoveCurrentWallpaper)
@@ -91,6 +92,24 @@ class Wallbaser(wx.Frame):
         self.currentSecondCount = 5
         self.randomWallpaperChance = 1.0
 
+    def GetWallpaper(self, url_prefix, wid, ext):
+        r = requests.get(url_prefix + wid + ext, stream=True)
+        # If the return code is 200 that means we have found it. Go ahead and download it
+        if r.status_code == 200:
+            # Open a file in the wallpaper cache and write the found wallpaper to it
+            with open(self.wallpaperFolderPath + wid + ext, 'wb') as f:
+                for chunk in r.iter_content():
+                    f.write(chunk)
+            if ext != '.jpg':
+                im = Image.open(self.wallpaperFolderPath + wid + ext)
+                im.save(self.wallpaperFolderPath + wid + '.jpg')
+                os.remove(self.wallpaperFolderPath + wid + ext)
+            # Update the current wallpaper to the new one
+            self.SetWallpaper(wid + '.jpg')
+            return True
+        else:
+            return False
+
     def SetWallpaper(self,wallpaper):
         print "Setting wallpaper to '" + self.wallpaperFolderPath + wallpaper + "'"
         self.wallpaperFilename = wallpaper
@@ -115,7 +134,7 @@ class Wallbaser(wx.Frame):
                 if(random.random() < self.randomWallpaperChance):
                     # If so, set the wallpaper to a random one from the cache. Also reset the chance just in case it was set to 100% by a double click
                     rwallpaper = self.rand_wallpaper()
-                    self.randomWallpaperChance = 0.5
+                    self.randomWallpaperChance = 0
                     self.SetWallpaper(rwallpaper)
                 else:
                     # Otherwise download a new wallpaper and change to it
@@ -153,57 +172,16 @@ class Wallbaser(wx.Frame):
 
             # Go through each filename we found
             for wid in wids:
+                self.pausedReason = 'Paused for Wallpaper Downloading' + wid
+                print wid
                 # If the filename was found in the cache skip it and go to the next
                 if ((os.path.isfile(self.wallpaperFolderPath + wid + '.jpg')) or (os.path.isfile(self.wallpaperFolderPath + wid + '.png'))):
                     pass
-                else:
-                    # If the filename isn't in the cache we have to check a few places to find the actual location of the wallpaper
-                    r = requests.get('http://wallpapers.wallbase.cc/rozne/wallpaper-' + wid + '.jpg', stream=True)
-                    # If the return code is 200 that means we have found it. Go ahead and download it
-                    if r.status_code == 200:
-                        # Open a file in the wallpaper cache and write the found wallpaper to it
-                        with open(self.wallpaperFolderPath + wid + '.jpg', 'wb') as f:
-                            for chunk in r.iter_content():
-                                f.write(chunk)
-                        # Update the current wallpaper to the new one
-                        self.SetWallpaper(wid + '.jpg')
-                        wallpaperChanged = True
-                        break
-                    else:
-                        r = requests.get('http://wallpapers.wallbase.cc/manga-anime/wallpaper-' + wid + '.jpg', stream=True)
-                        if r.status_code == 200:
-                            with open(self.wallpaperFolderPath + wid + '.jpg', 'wb') as f:
-                                for chunk in r.iter_content():
-                                    f.write(chunk)
-                            self.SetWallpaper(wid + '.jpg')
-                            wallpaperChanged = True
-                            break
-                        else:
-                            r = requests.get('http://wallpapers.wallbase.cc/rozne/wallpaper-' + wid + '.png', stream=True)
-                            if r.status_code == 200:
-                                with open('E:\\t\\' + wid + '.png', 'wb') as f:
-                                    for chunk in r.iter_content():
-                                        f.write(chunk)
-                                im = Image.open(self.wallpaperFolderPath + wid + '.png')
-                                im.save(self.wallpaperFolderPath + wid + '.jpg')
-                                #print"\t\t\tDeleting old .png"
-                                os.remove(self.wallpaperFolderPath + wid + '.png')
-                                #print"\t\t\tSetting desktop background to \"" + self.wallpaperFolderPath + wid + ".jpg\""
-                                self.SetWallpaper(wid + '.jpg')
-                                wallpaperChanged = True
-                                break
-                            else:
-                                r = requests.get('http://wallpapers.wallbase.cc/manga-anime/wallpaper-' + wid + '.png', stream=True)
-                                if r.status_code == 200:
-                                    with open(self.wallpaperFolderPath + wid + '.png', 'wb') as f:
-                                        for chunk in r.iter_content():
-                                            f.write(chunk)
-                                    im = Image.open(self.wallpaperFolderPath + wid + '.png')
-                                    im.save(self.wallpaperFolderPath + wid + '.jpg')
-                                    os.remove(self.wallpaperFolderPath + wid + '.png')
-                                    self.SetWallpaper(wid + '.jpg')
-                                    wallpaperChanged = True
-                                    break
+                # If the filename isn't in the cache we have to check a few places to find the actual location of the wallpaper
+                elif (self.getWallpaper('http://wallpapers.wallbase.cc/rozne/wallpaper-', wid, '.jpg') or self.getWallpaper('http://wallpapers.wallbase.cc/rozne/wallpaper-', wid, '.png') or
+                      self.getWallpaper('http://wallpapers.wallbase.cc/manga-anime/wallpaper-', + wid, '.jpg') or self.getWallpaper('http://wallpapers.wallbase.cc/manga-anime/wallpaper-', + wid, '.png')):
+                    wallpaperChanged = True
+                    break
         # If there was an error log it
         except Exception, e:
             print "ERROR " + str(e);
